@@ -26,7 +26,21 @@ def detect_accident(video_path, model_path, conf_threshold):
         print(f"❌ Error: Could not open video source.")
         return
 
+    # --- NEW: Setup Video Writer to Save Results ---
+    # Get video properties (width, height, fps)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+    # Define the output file path
+    output_path = "data/accident_detected_output.mp4"
+    
+    # Initialize the writer
+    video_writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+    # -----------------------------------------------
+
     print(f"🎥 Processing Video: {video_path}")
+    print(f"💾 Saving Output to: {output_path}")
     print("   (A window will open. Press 'q' to quit early)")
     print("-" * 40)
 
@@ -43,7 +57,6 @@ def detect_accident(video_path, model_path, conf_threshold):
         frame_count += 1
 
         # 3. Run AI Inference
-        # verbose=False keeps the terminal clean
         results = model(frame, conf=conf_threshold, verbose=False)
 
         # 4. Check for Detections
@@ -53,16 +66,17 @@ def detect_accident(video_path, model_path, conf_threshold):
                 has_detection = True
                 accident_frames += 1
                 accident_detected = True
-                
-                # Draw boxes
-                frame = r.plot()
+            
+            # Draw boxes (This returns the BGR numpy array with boxes)
+            # We overwrite 'frame' so we can save it with boxes
+            frame = r.plot()
 
-        # Optional: Print alert continuously
-        # if has_detection:
-        #     print(f"   ⚠️ Accident detected at Frame {frame_count}")
+        # --- NEW: Write the frame with boxes to the file ---
+        video_writer.write(frame)
+        # ---------------------------------------------------
 
         # 5. Show Video Window
-        # Resize large 4K videos to fit screen
+        # Resize large 4K videos to fit screen (Display only, does not affect saved file)
         display_frame = cv2.resize(frame, (1020, 600))
         cv2.imshow("Sentinel Accident Detector", display_frame)
 
@@ -73,6 +87,7 @@ def detect_accident(video_path, model_path, conf_threshold):
 
     # 6. Cleanup & Final Report
     cap.release()
+    video_writer.release() # <--- Release the writer!
     cv2.destroyAllWindows()
 
     print("\n" + "=" * 40)
@@ -83,9 +98,11 @@ def detect_accident(video_path, model_path, conf_threshold):
     if accident_detected:
         print(f"🚨 STATUS: ACCIDENT DETECTED")
         print(f"   The model flagged crashes in {accident_frames} frames.")
+        print(f"   ✅ Output video saved: {output_path}")
     else:
         print(f"✅ STATUS: NO ACCIDENT DETECTED")
         print(f"   The video contains normal traffic.")
+        print(f"   ✅ Output video saved: {output_path}")
     print("=" * 40 + "\n")
 
 if __name__ == "__main__":
