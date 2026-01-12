@@ -11,7 +11,7 @@
   <strong>Real-time computer vision system capable of detecting road accidents with 84% Precision.</strong>
 </p>
 
-<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMzM0MzQ1N/26tMZz38263r6/giphy.gif" alt="Accident Detection Demo" width="800"/>
+
 
 [View Demo Video](path/to/your/video.mp4) | [Report Bug](https://github.com/sameer3579/accident-detection-system/issues)
 
