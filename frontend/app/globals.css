@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0 0;
+    --foreground: 226 232 240;
+    --neon-red: 239 68 68;
+    --neon-blue: 56 189 248;
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+}
+
+body {
+  background-color: black;
+  color: rgb(var(--foreground));
+  font-family: var(--font-orbitron), sans-serif;
+  overflow-x: hidden;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9)),
+    url('/grid.svg');
+  background-size: cover, 100px 100px;
+  background-attachment: fixed, fixed;
+  animation: moveGrid 20s linear infinite;
+}
+
+@keyframes moveGrid {
+  0% {
+    background-position: center, 0 0;
+  }
+
+  100% {
+    background-position: center, 0 100px;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ef4444;
+}
+
+/* Typography Overrides */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-orbitron), sans-serif;
+  letter-spacing: 0.05em;
+}
+
+p,
+span,
+div,
+input,
+button {
+  font-family: var(--font-jetbrains), monospace;
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-xl;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+  }
+
+  .glass-panel:hover {
+    @apply border-white/20;
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-panel-danger {
+    @apply bg-red-950/20 backdrop-blur-xl border border-red-500/30;
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.1), inset 0 0 20px rgba(220, 38, 38, 0.05);
+  }
+
+  .btn-primary {
+    @apply px-8 py-4 bg-red-600/90 hover:bg-red-500 text-white font-bold tracking-widest uppercase transition-all duration-300;
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.6);
+    transform: translateY(-2px);
+  }
+}
+
+@layer utilities {
+  .text-neon-red {
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.4);
+  }
+
+  .text-neon-blue {
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.8), 0 0 20px rgba(56, 189, 248, 0.4);
+  }
+
+  .border-neon-red {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5), inset 0 0 10px rgba(239, 68, 68, 0.2);
+  }
+
+  .scanline {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scanline::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom,
+        transparent 50%,
+        rgba(0, 0, 0, 0.5) 51%,
+        transparent 51%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.3;
+  }
+
+  .animate-glitch {
+    animation: glitch 1s linear infinite;
+  }
+
+  @keyframes glitch {
+
+    2%,
+    64% {
+      transform: translate(2px, 0) skew(0deg);
+    }
+
+    4%,
+    60% {
+      transform: translate(-2px, 0) skew(0deg);
+    }
+
+    62% {
+      transform: translate(0, 0) skew(5deg);
+    }
+  }
+}
