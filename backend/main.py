@@ -3,6 +3,7 @@ import cv2
 import shutil
 import uuid
 import asyncio
+import traceback
 from typing import List
 from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect, BackgroundTasks, Form
 from fastapi.staticfiles import StaticFiles
@@ -76,6 +77,10 @@ async def process_video(input_path: str, output_path: str, output_filename: str,
     Background task to process video and send real-time updates via WebSocket.
     """
     print(f"Starting processing for client {client_id}")
+    await manager.send_personal_message(
+        {"type": "status_update", "status": "Initializing Video Engine..."},
+        client_id
+    )
     
     # Open video in a thread to avoid blocking
     cap = await asyncio.to_thread(cv2.VideoCapture, input_path)
@@ -201,6 +206,11 @@ async def process_video(input_path: str, output_path: str, output_filename: str,
                 break
     except Exception as e:
         print(f"Error during processing loop: {e}")
+        traceback.print_exc()
+        await manager.send_personal_message(
+            {"type": "error", "message": f"Processing Server Error: {str(e)}"},
+            client_id
+        )
         # Try to clean up
     finally:
         await asyncio.to_thread(cap.release)
