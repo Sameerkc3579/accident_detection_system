@@ -11,8 +11,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies required for OpenCV
 # Install system dependencies
+# "libgl1" and "libglib2.0-0" are required for OpenCV
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libgl1 \
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-# Install CPU-only PyTorch first to keep image small (Render Free Tier doesn't have GPU)
+# CPU-only PyTorch to save space (Hugging Face Free Tier uses CPU by default)
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # Install other dependencies
@@ -34,12 +34,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Create static directory
-RUN mkdir -p static
+# --- ⬇️ CRITICAL FIXES FOR HUGGING FACE SPACES ⬇️ ---
 
-# Expose port (Render uses $PORT env var, but defaults to 10000 or similar inside internal network, external mapping handles it)
-EXPOSE 8000
+# 1. Create necessary folders
+RUN mkdir -p static models
 
-# Command to run the application
-# Use 0.0.0.0 to listen on all interfaces
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# 2. FIX PERMISSIONS: Hugging Face runs as user 1000 (non-root).
+# We must give "Write" access (777) to these folders so the app can save videos.
+RUN chmod -R 777 static models
+
+# 3. EXPOSE PORT 7860 (Strictly required by Hugging Face)
+EXPOSE 7860
+
+# 4. START COMMAND
+# Force host to 0.0.0.0 and port to 7860
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]

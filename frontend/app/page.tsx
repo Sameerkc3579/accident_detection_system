@@ -5,6 +5,14 @@ import Hero from '@/components/Hero';
 import UploadZone from '@/components/UploadZone';
 import Dashboard from '@/components/Dashboard';
 
+// ---------------------------------------------------------
+// 🔧 CONFIGURATION: CONNECTING TO HUGGING FACE
+// ---------------------------------------------------------
+// This is your live backend URL from the previous step.
+// We treat this as the "Master URL" for the entire app.
+const API_BASE_URL = "https://sameerchoudhary67-sentinel-backend.hf.space";
+// ---------------------------------------------------------
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
@@ -18,56 +26,61 @@ export default function Home() {
 
   // Helper to safely derive WS URL
   const getWsUrl = (id: string) => {
-    // Priority 1: Explicit WS URL
-    if (process.env.NEXT_PUBLIC_WS_URL) return `${process.env.NEXT_PUBLIC_WS_URL}/${id}`;
+    // 1. Get the base URL (Prefer Environment Variable, fallback to Hardcoded Cloud URL)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || API_BASE_URL;
 
-    // Priority 2: Derive from API URL
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, ''); // Remove trailing slash
-      const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
-      const wsBase = apiUrl.replace(/^https?/, wsProtocol);
-      return `${wsBase}/ws/${id}`;
-    }
+    // 2. Remove trailing slash if it exists
+    const cleanUrl = baseUrl.replace(/\/$/, '');
 
-    // Fallback: Localhost
-    return `ws://127.0.0.1:8000/ws/${id}`;
+    // 3. Auto-switch protocol (https -> wss, http -> ws)
+    // Hugging Face uses HTTPS, so this will correctly switch to Secure WebSocket (wss://)
+    const wsProtocol = cleanUrl.startsWith('https') ? 'wss' : 'ws';
+    const wsBase = cleanUrl.replace(/^https?/, wsProtocol);
+
+    return `${wsBase}/ws/${id}`;
   };
 
   // Generate unique Client ID and connect to WebSocket on mount
   useEffect(() => {
+    // Prevent double-connection in React Strict Mode
+    if (socketRef.current) return;
+
     const id = Math.random().toString(36).substring(7);
     setClientId(id);
 
     const wsUrl = getWsUrl(id);
-    console.log("Attempting to connect to WebSocket:", wsUrl);
+    console.log("🚀 Connecting to Sentinel Backend:", wsUrl);
 
     const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
-      console.log("Connected to WebSocket");
+      console.log("✅ WebSocket Connected");
       setIsConnected(true);
       setStatusMessage("System Online");
     };
 
     socket.onclose = (event) => {
-      console.log("WebSocket Disconnected", event);
-      // Only alert if we were expecting a result (processing)
+      console.log("❌ WebSocket Disconnected", event);
+      setIsConnected(false);
+      // Only alert if we were actually in the middle of processing
       if (isProcessing) {
         setIsProcessing(false);
-        alert("Connection Lost! The server disconnected before finishing. \nCheck Backend Logs.");
+        alert("Connection Lost! The server disconnected before finishing.");
       }
     };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("WebSocket Message:", data);
+      console.log("📩 Message:", data);
 
       if (data.type === "accident_alert") {
         setResult({
           status: data.status,
-          confidence: data.confidence // Use confidence from alert
+          confidence: data.confidence
         });
-        // We do NOT stop processing here; we just show the alert
+        // Do NOT stop processing; allow the video to finish
+      } else if (data.type === "status_update") {
+        setStatusMessage(data.status);
       } else if (data.type === "complete") {
         setIsProcessing(false);
         setProcessedUrl(data.video_url);
@@ -77,29 +90,28 @@ export default function Home() {
         });
       } else if (data.type === "error") {
         setIsProcessing(false);
-        alert(`Error: ${data.message}`);
+        alert(`Server Error: ${data.message}`);
       }
     };
 
     socket.onerror = (error) => {
-      console.error("WebSocket Error:", error);
-      // onerror often doesn't give details, onclose will trigger next
+      console.error("⚠️ WebSocket Error:", error);
     };
 
     socketRef.current = socket;
 
+    // Cleanup on unmount
     return () => {
-      if (socket.readyState === 1) { // OPEN
+      if (socket.readyState === 1) {
         socket.close();
       }
     };
-  }, []);
+  }, []); // Empty dependency array = Run once on mount
 
   const handleFileSelect = (selectedFile: File) => {
     setFile(selectedFile);
     const url = URL.createObjectURL(selectedFile);
     setOriginalUrl(url);
-    // Reset previous results
     setProcessedUrl(null);
     setResult(null);
   };
@@ -108,35 +120,35 @@ export default function Home() {
     if (!file || !clientId) return;
 
     setIsProcessing(true);
-    setResult(null); // Reset result on new start
+    setResult(null);
+    setStatusMessage("Uploading Video...");
 
-    // Create FormData
     const formData = new FormData();
     formData.append("file", file);
     formData.append("client_id", clientId);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      const response = await fetch(`${apiUrl}/detect`, {
+      // Use the Cloud URL
+      const targetUrl = process.env.NEXT_PUBLIC_API_URL || API_BASE_URL;
+
+      const response = await fetch(`${targetUrl}/detect`, {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Detection request failed");
+        throw new Error("Detection request failed. Backend might be waking up.");
       }
 
-      // We don't wait for 'data' here as the real result comes via WebSocket
-      console.log("Detection started via API");
+      console.log("✅ Upload Complete. Waiting for analysis...");
 
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Upload Error:", error);
       let errorMessage = "System Offline or Error Processing Video";
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      const targetUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      alert(`Connection Failed! \n\nTarget URL: ${targetUrl}\n\nError: ${errorMessage}`);
+      alert(`Connection Failed!\n\nCheck if the Backend is running.\nError: ${errorMessage}`);
       setIsProcessing(false);
     }
   };
@@ -146,8 +158,8 @@ export default function Home() {
       {/* Top Status Bar */}
       <div className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10 px-4 py-2 flex justify-between items-center text-[10px] md:text-xs font-mono text-slate-400">
         <div className="flex gap-4">
-          <span className={isConnected ? "text-emerald-500" : "text-red-500"}>
-            ● {isConnected ? "SYSTEM_ONLINE" : "DISCONNECTED"}
+          <span className={`transition-colors duration-500 ${isConnected ? "text-emerald-500" : "text-red-500"}`}>
+            ● {isConnected ? "SYSTEM_ONLINE" : "CONNECTING..."}
           </span>
           <span className="hidden md:inline">NET_SECURE</span>
           <span className="hidden md:inline">LATENCY: 12ms</span>
@@ -173,7 +185,7 @@ export default function Home() {
               <div className="text-center animate-fade-in">
                 <button
                   onClick={startDetection}
-                  className="btn-primary"
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-900/20 tracking-widest"
                 >
                   INITIATE SCAN PROTOCOL
                 </button>
@@ -189,7 +201,7 @@ export default function Home() {
               <Dashboard
                 originalVideoUrl={originalUrl}
                 processedVideoUrl={processedUrl}
-                status={result?.status || (isProcessing ? (statusMessage || "PROCESSING STREAM...") : null)}
+                status={result?.status || (isProcessing ? statusMessage : null)}
                 confidence={result?.confidence || 0}
               />
             )}
