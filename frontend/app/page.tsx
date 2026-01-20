@@ -27,7 +27,7 @@ export default function Home() {
   // Helper to safely derive WS URL
   const getWsUrl = (id: string) => {
     // 1. Get the base URL (Prefer Environment Variable, fallback to Hardcoded Cloud URL)
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || API_BASE_URL;
+    const baseUrl = API_BASE_URL;
 
     // 2. Remove trailing slash if it exists
     const cleanUrl = baseUrl.replace(/\/$/, '');
@@ -129,7 +129,7 @@ export default function Home() {
 
     try {
       // Use the Cloud URL
-      const targetUrl = process.env.NEXT_PUBLIC_API_URL || API_BASE_URL;
+      const targetUrl = API_BASE_URL;
 
       const response = await fetch(`${targetUrl}/detect`, {
         method: "POST",
