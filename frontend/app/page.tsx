@@ -26,6 +26,15 @@ export default function Home() {
       console.log("Connected to WebSocket");
     };
 
+    socket.onclose = (event) => {
+      console.log("WebSocket Disconnected", event);
+      // Only alert if we were expecting a result (processing)
+      if (isProcessing) {
+        setIsProcessing(false);
+        alert("Connection Lost! The server disconnected before finishing. \nCheck Backend Logs.");
+      }
+    };
+
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       console.log("WebSocket Message:", data);
@@ -51,6 +60,7 @@ export default function Home() {
 
     socket.onerror = (error) => {
       console.error("WebSocket Error:", error);
+      // onerror often doesn't give details, onclose will trigger next
     };
 
     socketRef.current = socket;

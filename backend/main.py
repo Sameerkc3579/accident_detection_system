@@ -23,9 +23,8 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 # CORS Setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_origin_regex='.*', # Explicitly allow regex for stricter envs
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
