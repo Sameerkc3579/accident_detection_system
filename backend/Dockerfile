@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-# Using opencv-python-headless is strictly better for server environments to avoid GUI deps
+# Install CPU-only PyTorch first to keep image small (Render Free Tier doesn't have GPU)
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Install other dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
