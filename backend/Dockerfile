@@ -1,6 +1,13 @@
 # Use official lightweight Python image
 FROM python:3.10-slim
 
+# Memory Optimization Environment Variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MALLOC_ARENA_MAX=2 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
+
 # Set working directory
 WORKDIR /app
 
