@@ -13,6 +13,8 @@ export default function Home() {
   const [result, setResult] = useState<{ status: string; confidence: number } | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("Initializing...");
   const [isConnected, setIsConnected] = useState(false);
+  const [clientId, setClientId] = useState<string>("");
+  const socketRef = useRef<WebSocket | null>(null);
 
   // Helper to safely derive WS URL
   const getWsUrl = (id: string) => {
