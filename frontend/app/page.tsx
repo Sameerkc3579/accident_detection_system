@@ -11,19 +11,40 @@ export default function Home() {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<{ status: string; confidence: number } | null>(null);
-  const [clientId, setClientId] = useState<string>("");
-  const socketRef = useRef<WebSocket | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("Initializing...");
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Helper to safely derive WS URL
+  const getWsUrl = (id: string) => {
+    // Priority 1: Explicit WS URL
+    if (process.env.NEXT_PUBLIC_WS_URL) return `${process.env.NEXT_PUBLIC_WS_URL}/${id}`;
+
+    // Priority 2: Derive from API URL
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, ''); // Remove trailing slash
+      const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
+      const wsBase = apiUrl.replace(/^https?/, wsProtocol);
+      return `${wsBase}/ws/${id}`;
+    }
+
+    // Fallback: Localhost
+    return `ws://127.0.0.1:8000/ws/${id}`;
+  };
 
   // Generate unique Client ID and connect to WebSocket on mount
   useEffect(() => {
     const id = Math.random().toString(36).substring(7);
     setClientId(id);
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8000/ws";
-    const socket = new WebSocket(`${wsUrl}/${id}`);
+    const wsUrl = getWsUrl(id);
+    console.log("Attempting to connect to WebSocket:", wsUrl);
+
+    const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       console.log("Connected to WebSocket");
+      setIsConnected(true);
+      setStatusMessage("System Online");
     };
 
     socket.onclose = (event) => {
@@ -123,7 +144,9 @@ export default function Home() {
       {/* Top Status Bar */}
       <div className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10 px-4 py-2 flex justify-between items-center text-[10px] md:text-xs font-mono text-slate-400">
         <div className="flex gap-4">
-          <span className="text-emerald-500">● SYSTEM_ONLINE</span>
+          <span className={isConnected ? "text-emerald-500" : "text-red-500"}>
+            ● {isConnected ? "SYSTEM_ONLINE" : "DISCONNECTED"}
+          </span>
           <span className="hidden md:inline">NET_SECURE</span>
           <span className="hidden md:inline">LATENCY: 12ms</span>
         </div>
@@ -164,7 +187,7 @@ export default function Home() {
               <Dashboard
                 originalVideoUrl={originalUrl}
                 processedVideoUrl={processedUrl}
-                status={result?.status || (isProcessing ? "PROCESSING STREAM..." : null)}
+                status={result?.status || (isProcessing ? (statusMessage || "PROCESSING STREAM...") : null)}
                 confidence={result?.confidence || 0}
               />
             )}
