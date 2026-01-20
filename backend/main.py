@@ -63,6 +63,11 @@ except Exception as e:
     print(f"Error loading model: {e}")
     model = None
 
+@app.get("/")
+def home():
+    return {"status": "System Online", "message": "Sentinel AI Backend is running."}
+
+
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await manager.connect(websocket, client_id)
