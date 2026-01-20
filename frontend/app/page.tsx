@@ -102,7 +102,8 @@ export default function Home() {
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      alert(`Error: ${errorMessage}. \n\nPlease ensure the Backend is running on port 8000.`);
+      const targetUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      alert(`Connection Failed! \n\nTarget URL: ${targetUrl}\n\nError: ${errorMessage}`);
       setIsProcessing(false);
     }
   };
