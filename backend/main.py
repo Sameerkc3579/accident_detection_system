@@ -4,6 +4,8 @@ import shutil
 import uuid
 import asyncio
 import traceback
+import torch
+import gc
 from typing import List
 from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect, BackgroundTasks, Form
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +21,12 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 # Ensure static directory exists
 os.makedirs(STATIC_DIR, exist_ok=True)
+
+# Memory Optimization for Render Free Tier (512MB RAM)
+torch.set_num_threads(1)
+cv2.setNumThreads(1)
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 
 # CORS Setup
 app.add_middleware(
@@ -143,6 +151,10 @@ async def process_video(input_path: str, output_path: str, output_filename: str,
             ret, frame = await asyncio.to_thread(cap.read)
             if not ret:
                 break
+            
+            # Explicit memory cleanup
+            if frame_count % 30 == 0:
+                gc.collect()
             
             # Resize frame
             if target_width != original_width:
