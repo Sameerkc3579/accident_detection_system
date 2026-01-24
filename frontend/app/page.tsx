@@ -165,7 +165,7 @@ export default function Home() {
           <span className="hidden md:inline">LATENCY: 12ms</span>
         </div>
         <div className="flex gap-4">
-          <span>V 2.0.4</span>
+          <span>V 3.0.0 (HF)</span>
           <span className="text-red-500">SENTINEL_CORE_ACTIVE</span>
         </div>
       </div>
