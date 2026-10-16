@@ -10,3 +10,6 @@ node_modules/
 .next/
 dist/
 .DS_Store
+
+# Runtime uploads and processed videos (created by the backend at runtime)
+backend/static/

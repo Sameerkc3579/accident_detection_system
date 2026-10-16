@@ -241,8 +241,9 @@ async def process_video(input_path: str, output_path: str, output_filename: str,
     if accident_detected_frames > 0:
         status = "Accident Detected"
 
-    # Use Render URL if available, else localhost
-    base_url = os.getenv("RENDER_EXTERNAL_URL", "http://127.0.0.1:8000")
+    # Public URL: Render sets RENDER_EXTERNAL_URL, Hugging Face Spaces set SPACE_HOST
+    space_host = os.getenv("SPACE_HOST")
+    base_url = os.getenv("RENDER_EXTERNAL_URL") or (f"https://{space_host}" if space_host else "http://127.0.0.1:8000")
     video_url = f"{base_url}/static/{output_filename}"
 
     print(f"Processing complete for {client_id}. Status: {status}")
